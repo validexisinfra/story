@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 ############################################
-# Story full node installer (glibc-safe)
-# geth builds from source
+# Story full node installer (FINAL, SAFE)
+# - build story-geth from source (glibc-safe)
+# - absolute paths, no PATH dependency
+# - safe for screen / tmux
 ############################################
 
 set +e
@@ -13,13 +15,20 @@ STORY_NETWORK="story"          # story | aeneid
 STORY_VERSION="v1.4.1"
 GETH_VERSION="v1.1.2"
 
+### PATHS ###
+BIN_DIR="$HOME/go/bin"
+STORY_BIN="$BIN_DIR/story"
+GETH_BIN="$BIN_DIR/geth"
+STORY_HOME="$HOME/.story/story"
+GETH_HOME="$HOME/.story/geth"
+
 ### COLORS ###
 GREEN="\033[0;32m"
 RED="\033[0;31m"
 YELLOW="\033[1;33m"
 NC="\033[0m"
 
-echo -e "${GREEN}== Story full node installer (glibc-safe) ==${NC}"
+echo -e "${GREEN}== Story full node installer (FINAL) ==${NC}"
 
 ############################################
 # 1. System deps
@@ -45,13 +54,12 @@ go version
 ############################################
 echo -e "${GREEN}Building story-geth from source (${GETH_VERSION})...${NC}"
 
-cd $HOME
+cd "$HOME" || exit 1
 rm -rf story-geth
 
 git clone https://github.com/piplabs/story-geth.git
 cd story-geth || exit 1
-
-git checkout ${GETH_VERSION}
+git checkout "${GETH_VERSION}"
 
 make geth
 if [[ $? -ne 0 ]]; then
@@ -59,13 +67,13 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-mkdir -p $HOME/go/bin
-cp build/bin/geth $HOME/go/bin/geth
-chmod +x $HOME/go/bin/geth
+mkdir -p "$BIN_DIR"
+cp build/bin/geth "$GETH_BIN"
+chmod +x "$GETH_BIN"
 
-geth version
+"$GETH_BIN" version || exit 1
 
-cd $HOME
+cd "$HOME"
 rm -rf story-geth
 
 ############################################
@@ -73,28 +81,29 @@ rm -rf story-geth
 ############################################
 echo -e "${GREEN}Installing story ${STORY_VERSION}...${NC}"
 
-wget -q https://github.com/piplabs/story/releases/download/${STORY_VERSION}/story-linux-amd64
+wget -q "https://github.com/piplabs/story/releases/download/${STORY_VERSION}/story-linux-amd64"
 mv story-linux-amd64 story
 chmod +x story
-mkdir -p $HOME/go/bin
-mv story $HOME/go/bin/
+mkdir -p "$BIN_DIR"
+mv story "$STORY_BIN"
 
-story version
+"$STORY_BIN" version || exit 1
 
 ############################################
 # 5. Init Story
 ############################################
 echo -e "${GREEN}Initializing Story node...${NC}"
 
-story init --network ${STORY_NETWORK} --moniker "${NODE_MONIKER}"
+"$STORY_BIN" init --network "${STORY_NETWORK}" --moniker "${NODE_MONIKER}"
 
 ############################################
 # 6. Addrbook
 ############################################
 echo -e "${GREEN}Downloading addrbook...${NC}"
 
+mkdir -p "$STORY_HOME/config"
 curl -Ls https://ss.story.nodestake.org/addrbook.json \
-  > $HOME/.story/story/config/addrbook.json
+  > "$STORY_HOME/config/addrbook.json"
 
 ############################################
 # 7. story.service
@@ -108,7 +117,7 @@ After=network-online.target
 
 [Service]
 User=$USER
-ExecStart=$(which story) run
+ExecStart=$STORY_BIN run
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
@@ -129,7 +138,7 @@ After=network-online.target
 
 [Service]
 User=$USER
-ExecStart=$(which geth) --story --syncmode full
+ExecStart=$GETH_BIN --story --syncmode full
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
@@ -154,21 +163,25 @@ if [[ -n "$SNAP_NAME" ]]; then
 
   sudo systemctl stop story geth
 
-  cp $HOME/.story/story/data/priv_validator_state.json \
-     $HOME/.story/story/priv_validator_state.json.backup 2>/dev/null
+  if [[ -f "$STORY_HOME/data/priv_validator_state.json" ]]; then
+    cp "$STORY_HOME/data/priv_validator_state.json" \
+       "$STORY_HOME/priv_validator_state.json.backup"
+  fi
 
-  rm -rf $HOME/.story/story/data
+  rm -rf "$STORY_HOME/data"
 
-  curl -L https://ss.story.nodestake.org/${SNAP_NAME} \
-    | lz4 -dc | tar -xf - -C $HOME/.story/story
+  curl -L "https://ss.story.nodestake.org/${SNAP_NAME}" \
+    | lz4 -dc | tar -xf - -C "$STORY_HOME"
 
-  mv $HOME/.story/story/priv_validator_state.json.backup \
-     $HOME/.story/story/data/priv_validator_state.json 2>/dev/null
+  if [[ -f "$STORY_HOME/priv_validator_state.json.backup" ]]; then
+    mv "$STORY_HOME/priv_validator_state.json.backup" \
+       "$STORY_HOME/data/priv_validator_state.json"
+  fi
 
-  mkdir -p $HOME/.story/geth/story/geth
+  mkdir -p "$GETH_HOME/story/geth"
 
   curl -L https://ss.story.nodestake.org/geth.tar.lz4 \
-    | lz4 -dc | tar -xf - -C $HOME/.story/geth/story/geth
+    | lz4 -dc | tar -xf - -C "$GETH_HOME/story/geth"
 fi
 
 ############################################
