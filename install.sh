@@ -1,107 +1,121 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 ############################
 # CONFIG
 ############################
 MONIKER="test"
 STORY_CHAIN_ID="story-1"
-STORY_PORT="45"
-
+STORY_PORT_PREFIX="45"   # чтобы не конфликтовать с Celestia
 GO_VERSION="1.22.5"
 STORY_VERSION="v1.4.1"
 GETH_VERSION="v1.1.2"
 
+STORY_HOME="$HOME/.story"
 BIN_DIR="$HOME/go/bin"
+
 STORY_BIN="$BIN_DIR/story"
 GETH_BIN="$BIN_DIR/geth"
 
-STORY_HOME="$HOME/.story/story"
-GETH_HOME="$HOME/.story/geth"
+############################
+# PREP
+############################
+echo "== Story full rebuild installer =="
+
+sudo systemctl stop story story-geth 2>/dev/null || true
+sudo systemctl disable story story-geth 2>/dev/null || true
+
+rm -rf "$STORY_HOME"
+rm -rf "$HOME/story"
+rm -rf "$HOME/story-geth"
+
+mkdir -p "$BIN_DIR"
 
 ############################
-# Deps
+# SYSTEM DEPS
 ############################
 sudo apt update
-sudo apt install -y git curl build-essential jq lz4 tmux unzip bc wget
+sudo apt install -y \
+  git curl wget jq build-essential make gcc \
+  chrony lz4 tmux unzip bc
 
 ############################
-# Go
+# GO
 ############################
-cd $HOME
-sudo rm -rf /usr/local/go
-wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
-rm go${GO_VERSION}.linux-amd64.tar.gz
+if ! go version 2>/dev/null | grep -q "$GO_VERSION"; then
+  echo "Installing Go $GO_VERSION"
+  sudo rm -rf /usr/local/go
+  curl -L "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+    | sudo tar -C /usr/local -xz
 
-mkdir -p $BIN_DIR
-export PATH=/usr/local/go/bin:$BIN_DIR:$PATH
+  if ! grep -q "/usr/local/go/bin" "$HOME/.bash_profile" 2>/dev/null; then
+    echo 'export PATH=/usr/local/go/bin:$HOME/go/bin:$PATH' >> "$HOME/.bash_profile"
+  fi
+fi
 
+export PATH=/usr/local/go/bin:$HOME/go/bin:$PATH
 go version
 
 ############################
-# Build story-geth (glibc SAFE)
+# BUILD story-geth
 ############################
-cd $HOME
-git clone https://github.com/piplabs/story-geth.git
+echo "Building story-geth from source..."
+cd "$HOME"
+git clone https://github.com/piplabs/story-geth
 cd story-geth
-git checkout ${GETH_VERSION}
-make geth
-cp build/bin/geth $GETH_BIN
-chmod +x $GETH_BIN
+git checkout "$GETH_VERSION"
 
-$GETH_BIN version
+go run build/ci.go install ./cmd/geth
+cp build/bin/geth "$GETH_BIN"
+chmod +x "$GETH_BIN"
 
-cd $HOME
-rm -rf story-geth
+"$GETH_BIN" version
 
 ############################
-# Build story
+# BUILD story
 ############################
+echo "Building story from source..."
+cd "$HOME"
 git clone https://github.com/piplabs/story
 cd story
-git checkout ${STORY_VERSION}
+git checkout "$STORY_VERSION"
+
 go build -o story ./client
-mv story $STORY_BIN
-chmod +x $STORY_BIN
+cp story "$STORY_BIN"
+chmod +x "$STORY_BIN"
 
-$STORY_BIN version
-
-############################
-# Init
-############################
-$STORY_BIN init --moniker $MONIKER --network $STORY_CHAIN_ID
+"$STORY_BIN" version
 
 ############################
-# Peers / Seeds
+# INIT STORY
 ############################
-SEEDS="8db87ee67cdf4c098d023e8f96d6156f098f0ae1@story-mainnet-seed.itrocket.net:45656"
-PEERS="ef8d211e08ca33193c2dff535ec5a29902e2b3f4@story-mainnet-peer.itrocket.net:45656"
-
-sed -i -e "/^\[p2p\]/,/^\[/{s/^seeds *=.*/seeds = \"$SEEDS\"/}" \
-       -e "/^\[p2p\]/,/^\[/{s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/}" \
-       $STORY_HOME/config/config.toml
+"$STORY_BIN" init --moniker "$MONIKER" --network "$STORY_CHAIN_ID"
 
 ############################
-# Ports
+# CONFIG PORTS
 ############################
-sed -i -e "
-s/:26658/:${STORY_PORT}658/g;
-s/:26657/:${STORY_PORT}657/g;
-s/:26656/:${STORY_PORT}656/g;
-s/:26660/:${STORY_PORT}660/g;
-" $STORY_HOME/config/config.toml
+CFG="$STORY_HOME/story/config/config.toml"
+STORY_TOML="$STORY_HOME/story/config/story.toml"
 
-sed -i -e "
-s/:1317/:${STORY_PORT}317/g;
-s/:8551/:${STORY_PORT}551/g;
-" $STORY_HOME/config/story.toml
+sed -i.bak \
+  -e "s/:26658/:${STORY_PORT_PREFIX}658/g" \
+  -e "s/:26657/:${STORY_PORT_PREFIX}657/g" \
+  -e "s/:26656/:${STORY_PORT_PREFIX}656/g" \
+  -e "s/:26660/:${STORY_PORT_PREFIX}660/g" \
+  "$CFG"
 
-sed -i 's/prometheus = false/prometheus = true/' $STORY_HOME/config/config.toml
-sed -i 's/^indexer *=.*/indexer = "null"/' $STORY_HOME/config/config.toml
+sed -i.bak \
+  -e "s/:1317/:${STORY_PORT_PREFIX}317/g" \
+  -e "s/:8551/:${STORY_PORT_PREFIX}551/g" \
+  "$STORY_TOML"
+
+sed -i \
+  -e 's/prometheus = false/prometheus = true/' \
+  -e 's/^indexer *=.*/indexer = "null"/' \
+  "$CFG"
 
 ############################
-# systemd
+# SYSTEMD: story-geth
 ############################
 sudo tee /etc/systemd/system/story-geth.service > /dev/null <<EOF
 [Unit]
@@ -111,29 +125,31 @@ After=network-online.target
 [Service]
 User=$USER
 ExecStart=$GETH_BIN --story --syncmode full \
- --http --http.api eth,net,web3,engine \
- --http.addr 0.0.0.0 --http.port ${STORY_PORT}545 \
- --authrpc.port ${STORY_PORT}551 \
- --ws --ws.api eth,web3,net,txpool \
- --ws.addr 0.0.0.0 --ws.port ${STORY_PORT}546 \
- --port ${STORY_PORT}303
-Restart=always
+  --http --http.api eth,net,web3,engine --http.addr 0.0.0.0 --http.port ${STORY_PORT_PREFIX}545 \
+  --authrpc.port ${STORY_PORT_PREFIX}551 \
+  --ws --ws.api eth,web3,net,txpool --ws.addr 0.0.0.0 --ws.port ${STORY_PORT_PREFIX}546
+Restart=on-failure
+RestartSec=3
 LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
+############################
+# SYSTEMD: story
+############################
 sudo tee /etc/systemd/system/story.service > /dev/null <<EOF
 [Unit]
 Description=Story Node
-After=network-online.target
+After=network-online.target story-geth.service
 
 [Service]
 User=$USER
-WorkingDirectory=$STORY_HOME
+WorkingDirectory=$STORY_HOME/story
 ExecStart=$STORY_BIN run
-Restart=always
+Restart=on-failure
+RestartSec=5
 LimitNOFILE=65535
 
 [Install]
@@ -141,32 +157,36 @@ WantedBy=multi-user.target
 EOF
 
 ############################
-# Snapshot
+# SNAPSHOTS (OPTIONAL)
 ############################
+echo "Downloading snapshots..."
+
 sudo systemctl daemon-reload
-sudo systemctl stop story story-geth
 
-cp $STORY_HOME/data/priv_validator_state.json \
-   $STORY_HOME/priv_validator_state.json.backup || true
+cp "$STORY_HOME/story/data/priv_validator_state.json" \
+   "$STORY_HOME/story/priv_validator_state.json.backup" || true
 
-rm -rf $STORY_HOME/data
+rm -rf "$STORY_HOME/story/data"
 curl https://server-2.itrocket.net/mainnet/story/story_2025-12-12_11812794_snap.tar.lz4 \
- | lz4 -dc | tar -xf - -C $STORY_HOME
+  | lz4 -dc | tar -xf - -C "$STORY_HOME/story"
 
-mv $STORY_HOME/priv_validator_state.json.backup \
-   $STORY_HOME/data/priv_validator_state.json || true
+mv "$STORY_HOME/story/priv_validator_state.json.backup" \
+   "$STORY_HOME/story/data/priv_validator_state.json" || true
 
-mkdir -p $GETH_HOME/story/geth
+mkdir -p "$STORY_HOME/geth/story/geth"
+rm -rf "$STORY_HOME/geth/story/geth/chaindata"
 curl https://server-2.itrocket.net/mainnet/story/geth_story_2025-12-12_11812794_snap.tar.lz4 \
- | lz4 -dc | tar -xf - -C $GETH_HOME/story/geth
+  | lz4 -dc | tar -xf - -C "$STORY_HOME/geth/story/geth"
 
 ############################
-# Start
+# START
 ############################
-sudo systemctl enable story story-geth
+sudo systemctl enable story-geth story
 sudo systemctl restart story-geth
 sleep 5
 sudo systemctl restart story
 
-echo "DONE"
-journalctl -u story -u story-geth -f
+echo "=== INSTALL DONE ==="
+echo "Logs:"
+echo "journalctl -u story-geth -f"
+echo "journalctl -u story -f"
