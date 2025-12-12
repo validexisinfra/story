@@ -4,7 +4,6 @@ set -e
 ### CONFIG ###
 NODE_MONIKER="NodeName"        # <-- ЗАМЕНИ на свой moniker
 STORY_NETWORK="story"          # story | aeneid
-GO_VERSION="1.23.5"
 STORY_VERSION="v1.4.1"
 GETH_VERSION="v1.1.2"
 
@@ -22,25 +21,13 @@ sudo apt install -y \
   git curl build-essential make jq gcc snapd chrony \
   lz4 tmux unzip bc wget
 
-### 2. Install Go ###
-echo -e "${GREEN}Installing Go ${GO_VERSION}...${NC}"
-rm -rf $HOME/go
-sudo rm -rf /usr/local/go
-
-cd $HOME
-curl -L https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz \
-  | sudo tar -C /usr/local -xz
-
-if ! grep -q GOROOT $HOME/.profile; then
-cat <<'EOF' >> $HOME/.profile
-export GOROOT=/usr/local/go
-export GOPATH=$HOME/go
-export GO111MODULE=on
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-EOF
+### 2. Check Go ###
+echo -e "${GREEN}Checking Go installation...${NC}"
+if ! command -v go >/dev/null 2>&1; then
+  echo -e "${RED}Go is not installed. Please install Go before running this script.${NC}"
+  exit 1
 fi
 
-source $HOME/.profile
 go version
 
 ### 3. Install Story Geth ###
