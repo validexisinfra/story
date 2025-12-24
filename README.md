@@ -24,3 +24,23 @@ Deploy a Validator Node on Story Mainnet and contribute to network security.
 ~~~bash
 source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/install.sh)
 ~~~
+
+---
+
+## 🔄 Upgrade Scripts
+
+### 🔄 Upgrade Testnet  
+Update your Story on the testnet to the latest version.
+
+~~~bash
+source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/upgrade_testnet.sh)
+~~~
+
+---
+
+### 🔄 Upgrade Mainnet  
+Keep your Story on the mainnet up-to-date.
+
+~~~bash
+source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/upgrade_mainnet.sh)
+~~~
