@@ -11,7 +11,7 @@ A collection of automated scripts for setting up and upgrading Story nodes on bo
 Set up a Validator Node on the Aeneid testnet to securely participate in block validation.
 
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/setup_testnet.sh)
+source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/install_testnet.sh)
 ~~~
 
 ---
@@ -22,5 +22,5 @@ source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/set
 Deploy a Validator Node on Story Mainnet and contribute to network security.
 
 ~~~bash
-source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/setup_validator_mainnet.sh)
+source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/install.sh)
 ~~~
