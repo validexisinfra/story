@@ -44,3 +44,14 @@ Keep your Story on the mainnet up-to-date.
 ~~~bash
 source <(curl -s https://raw.githubusercontent.com/validexisinfra/Story/main/upgrade_mainnet.sh)
 ~~~
+
+---
+
+### 📌 How to Use  
+Copy the relevant command for your setup.  
+
+Paste it into your Linux terminal and execute.  
+
+Follow on-screen instructions.  
+
+💡 Tip: Always ensure your system meets the required dependencies before running scripts.
