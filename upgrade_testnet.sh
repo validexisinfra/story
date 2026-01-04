@@ -30,16 +30,16 @@ git checkout "$STORY_VERSION"
 echo "⚙️ Building story client"
 go build -o story ./client
 
-# (Optional) Update geth — uncomment if needed
-# echo "⏸ Stopping story-geth"
-# sudo systemctl stop story-geth
-#
-# echo "⬇️ Updating geth"
-# sudo wget -O $(which geth) https://github.com/piplabs/story-geth/releases/download/v1.1.0/geth-linux-amd64
-# sudo chmod +x $(which geth)
-#
-# echo "▶ Starting story-geth"
-# sudo systemctl start story-geth
+# Update geth — uncomment if needed
+echo "⏸ Stopping story-geth"
+sudo systemctl stop story-geth
+
+echo "⬇️ Updating geth"
+sudo wget -O $(which geth) https://github.com/piplabs/story-geth/releases/download/v1.2.0/geth-linux-amd64
+sudo chmod +x $(which geth)
+
+echo "▶ Starting story-geth"
+sudo systemctl start story-geth
 
 # Install binary
 echo "📦 Installing story binary"
