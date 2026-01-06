@@ -55,3 +55,38 @@ Paste it into your Linux terminal and execute.
 Follow on-screen instructions.  
 
 💡 Tip: Always ensure your system meets the required dependencies before running scripts.
+
+---
+
+##  🔗 Story Network Endpoints 
+
+###  📀 Mainnet
+
+####  🌌 Cosmos
+-  **API**: [`https://api-story-mainnet.validexis.com`](https://api-story-mainnet.validexis.com)  
+-  **RPC**: [`https://rpc-story-mainnet.validexis.com`](https://rpc-story-mainnet.validexis.com)
+-  **WebSocket**: [`wss://rpc-story-mainnet.validexis.com/websocket`](wss://rpc-story-mainnet.validexis.com/websocket)
+  
+####  🧩 Ethereum Virtual Machine (EVM)  
+-  **JSON-RPC**:  [`https://evm-story-mainnet.validexis.com:443`](https://evm-story-mainnet.validexis.com:443)
+-  **WebSocket**: [`wss://wss-story-mainnet-wss.validexis.com:443`](wss://wss-story-mainnet-wss.validexis.com:443)
+
+####  📘 AddrBook (auto-updated every 1h)
+Download the latest address book for faster peer discovery:
+```bash
+wget -O $HOME/.story/story/config/addrbook.json https://mainnets1.validexis.com/story/addrbook.json
+```
+
+### 🔌 Peers & Seeds
+
+### 📡 Persistent Peer
+~~~bash
+607f17f8be461d5b204361df8d18a06d2c7b66c9@story-mainnet-peer.validexis.com:35656
+~~~
+
+### 🌱 Seed Node
+~~~bash
+249de5c0085eb175da6ad7031f96bfc3ad751e33@story-mainnet-seed.validexis.com:35656
+~~~
+
+---
