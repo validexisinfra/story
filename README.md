@@ -90,3 +90,34 @@ wget -O $HOME/.story/story/config/addrbook.json https://mainnets1.validexis.com/
 ~~~
 
 ---
+
+### 🧪 Testnet
+
+####  🌌 Cosmos
+-  **API**: [`https://api-story-testnet.validexis.com`](https://api-story-testnet.validexis.com)  
+-  **RPC**: [`https://rpc-story-testnet.validexis.com`](https://rpc-story-testnet.validexis.com)
+-  **WebSocket**: [`wss://rpc-story-testnet.validexis.com/websocket`](wss://rpc-story-testnet.validexis.com/websocket)
+  
+####  🧩 Ethereum Virtual Machine (EVM)  
+-  **JSON-RPC**:  [`https://evm-story-testnet.validexis.com:443`](https://evm-story-testnet.validexis.com:443)
+-  **WebSocket**: [`wss://wss-story-testnet-wss.validexis.com:443`](wss://wss-story-testnet-wss.validexis.com:443)
+
+####  📘 AddrBook (auto-updated every 1h)
+Download the latest address book for faster peer discovery:
+```bash
+wget -O $HOME/.story/story/config/addrbook.json https://testnets1.validexis.com/story/addrbook.json
+```
+
+### 🔌 Peers & Seeds
+
+### 📡 Persistent Peer
+~~~bash
+5713c7da1e80c938643ea4aa99957bb0aadde9c1@story-testnet-peer.validexis.com:36656
+~~~
+
+### 🌱 Seed Node
+~~~bash
+dfb96be7e47cd76762c1dd45a5f76e536be47faa@story-testnet-seed.validexis.com:36656
+~~~
+
+---
